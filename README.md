@@ -363,21 +363,16 @@ Funções como `placeGuess` usam ponteiros para evitar copiar a struct Grid inte
 
 1. **Recursão**: `createNewGrid()` é recursiva e pode causar stack overflow em tabuleiros muito grandes
 2. **Múltiplos Tiros**: Não protege contra tiros repetidos na mesma célula (problema de UX)
-3. **Sem IA**: Jogo é contra o computador passivo (apenas distribui navios)
-4. **Sem Validação de Entrada**: Não valida coordenadas inválidas do jogador
+3. **Sem Validação de Entrada**: Não valida coordenadas inválidas do jogador
 
 ---
 
 ## 📝 Sugestões de Expansão
 
 Possíveis melhorias:
-- [ ] Modo contra IA com estratégia inteligente de tiro
 - [ ] Dificuldade variável (ajustar número de rodadas)
-- [ ] Modo dois jogadores alternado
 - [ ] Proteção contra tiros repetidos
-- [ ] Refatorar `createNewGrid()` para iterativo
-- [ ] Sistema de pontuação/ranking
-- [ ] Interface gráfica (SDL/OpenGL)
+- [ ] Refatorar `createNewGrid()` para usar ponteiros
 - [ ] Estatísticas de jogo (total de acertos, etc)
 
 ---

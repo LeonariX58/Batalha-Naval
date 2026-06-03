@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <time.h>
 
-// Tamanho e estrutura/quantidade dos barcos agora é 100% dinâmico
-#define gridSize 8
+// Tamanho e estrutura/quantidade dos barcos é 100% dinâmico
+#define gridSize 8 // n x n
 
 // Declara como static const no escopo glboal por segurança e boa prática
 static const int dx[] = {1, -1, 0, 0}; 
@@ -19,14 +19,14 @@ struct Position {
 };
 
 struct Grid {
-    int mesh[gridSize][gridSize];
-    int radar[gridSize][gridSize]; 
+    int mesh[gridSize][gridSize]; // Mapa dos barcos
+    int radar[gridSize][gridSize]; // Mapa do player
 };
 
 struct Game {
     int maxRounds;
     int round;
-    int state;
+    int state; // -1 = Game Over, 0 = Em andamento, 1 = Venceu
     struct Grid grid;
 };
 
@@ -55,12 +55,14 @@ int checkGridSize() {
     if (S > gridSize * gridSize) return 0;
     return 1;
 }
-// Testa se os espaços naquela direção estão disponíveis
-int tryNewShip(struct Grid grid, int rx, int ry, int rDir, int size) {
-    for (int i = 0; i < size; i++) {
-        int nextX = rx + (dx[rDir] * i);
-        int nextY = ry + (dy[rDir] * i);
 
+// Testa se os espaços naquela direção estão disponíveis
+int tryNewShip(struct Grid grid, int x, int y, int dir, int n) {
+    for (int i = 0; i < shipSize[n]; i++) {
+        int nextX = x + (dx[dir] * i);
+        int nextY = y + (dy[dir] * i);
+
+        // Restringe o próximo espaço a ser colocado dentro do tabuleiro e que ele não esteja ocupado por outro barco
         if (nextX < 0 || nextX >= gridSize || nextY < 0 || nextY >= gridSize || grid.mesh[nextX][nextY]) {
             return 0;
         }
@@ -80,17 +82,17 @@ struct Grid createNewGrid(struct Grid grid, int n) {
     // Tecnicamente não precisa, pq já vai checar essa condição depois, mas deve poucar um pouquinho de processamento
     if (grid.mesh[rx][ry]) return createNewGrid(grid, n);
     
-    int rDir = genRand(4); // Gera 4 possíveis direções
-    
+    int rDir = genRand(4); // Gera 4 possíveis direções, 0 - 3
+
     for (int i = 0; i < 4; i++) {
         // Garante que vai testar todas as direções
-        int newDir = (rDir + i) % 4;
+        int newDir = (rDir + i) % 4; // 1 + 0 % 4 = 1, 1 + 1 % 4 = 2, 1 + 2 % 4 = 3, 1 + 3 % 4 = 0
 
-        if (tryNewShip(grid, rx, ry, newDir, shipSize[n])) {
+        if (tryNewShip(grid, rx, ry, newDir, n)) {
             for (int j = 0; j < shipSize[n]; j++) {
                 int nextX = rx + (dx[newDir] * j);
                 int nextY = ry + (dy[newDir] * j);
-                grid.mesh[nextX][nextY] = n + 1;
+                grid.mesh[nextX][nextY] = n + 1; 
             }
             return createNewGrid(grid, (n + 1)); // Faz de novo, mas com o grid atualizado e o n + 1
         }
@@ -124,6 +126,7 @@ struct Game updateGame(struct Game game, struct Position pos) {
     return game;
 }
 
+// TODO: colocar um \n entre os For pra ficar mais legível
 // Desenha uma array de tamanho gridSize x gridSize no terminal
 void drawGame(int grid[][gridSize]) {
     for (int i = 0; i < gridSize; i++) {
@@ -137,7 +140,7 @@ void drawGame(int grid[][gridSize]) {
 
 struct Game initGame() {
     struct Game newGame = {0};
-    newGame.maxRounds = (gridSize * gridSize) / 3; // Da pra chutar até 1 terço do tabuleiro
+    newGame.maxRounds = (gridSize * gridSize) / 4; // Da pra chutar até 1 terço do tabuleiro
     newGame.grid = createNewGrid(newGame.grid, 0);
     // Se eu fizer aquela nova implementação vai ficar só:
     // createNewGrid(newGame.grid, 0);
@@ -149,7 +152,7 @@ int main() {
 
     // Previni o código de rodar se não for possível colocar os barcos no tabuleiro
     if (!checkGridSize()) {
-        printf("Parametros dos barcos invalidos!");
+        printf("Parametros dos barcos invalidos!\n");
         return 0;
     }
 
@@ -162,10 +165,9 @@ int main() {
         scanf("%d", &y);
         scanf("%d", &x);
 
-
         game = updateGame(game, newPos(x - 1, y - 1));
     } while (!game.state);
-    
+
     drawGame(game.grid.mesh); // Mostra como era o jogo (Temporário)
     return 0;
 }
