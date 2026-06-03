@@ -1,16 +1,17 @@
+// Versão teste com o objetivo de corrigir os problemas de performance do código original, mesmo perdendo legibilidade
+// Este código não deve ser usado na apresentação final, mas sim como um exemplo de implementação mais otimizada
+// Provavelmente nem vou mexer nesse treco
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
 // Tamanho e estrutura/quantidade dos barcos é 100% dinâmico
-#define gridSize 6 // n x n
+#define gridSize 8 // n x n
 
 // Declara como static const no escopo glboal por segurança e boa prática
 static const int dx[] = {1, -1, 0, 0}; 
 static const int dy[] = {0, 0, 1, -1};
 
-static const char alphabet[] = "abcdefghijklmnopqrstuvwxyz"; // Para mostrar as coordenadas de forma mais amigável
-static const int nAlphabet = sizeof(alphabet) - 1; // Vai que precisa mudar o alfabeto...
 static const int shipSize[] = {2, 2, 3, 3, 5};
 static const int nShips = sizeof(shipSize) / sizeof(shipSize[0]); // Mágica para ter o tamanho da array dinâmico
 // *Pega o tamanho total da array em bits e divide pelo tamanho do elemento em bytes para retornar a quantidade de elementos
@@ -68,34 +69,6 @@ int checkGridSize() {
     return 1;
 }
 
-// Transforma o valor do radar em um char equivalente
-char parseState(int state) {
-    if (state == 0) return '_';
-    else if (state == 1) return 'O';
-    else if (state == 2) return 'X';
-    else return '?';
-}
-
-int parseLetter(char c) {
-    // Se for de 0 a 9 o char que o jogador colocou no lugar da letra o parse arruma
-    // Se for número, retorna o número
-    // 0 = 48, 9 = 57
-    if (c >= '0' && c <= '9') {
-        return c - '0'; // Converte char para int (Ex. '3' - '0' = 3)
-    }
-    
-    // A - Z = 65 - 90, a - z = 97 - 122 => c + 32 converte letra maiúscula para minúscula
-    if (c >= 'A' && c <= 'Z') c = c + 32;
-    
-    for (int i = 0; i < nAlphabet; i++) {
-        if (alphabet[i] == c) {
-            return i;
-        }
-    }
-
-    return -1; // letra inválida
-}
-
 // Testa se os espaços naquela direção estão disponíveis
 int tryNewShip(struct Grid grid, int x, int y, int dir, int n) {
     for (int i = 0; i < shipSize[n]; i++) {
@@ -112,15 +85,15 @@ int tryNewShip(struct Grid grid, int x, int y, int dir, int n) {
 
 // TODO: Talvez fazer ela funcionar com ponteiro ao invés de copiar a struct
 // Função recursiva para gerar os barcos
-struct Grid createNewGrid(struct Grid grid, int n) {
-    if (n == nShips) return grid; // Solução trivial
+void createNewGrid(struct Grid *grid, int n) {
+    if (n == nShips) return;
 
     int rx; int ry;
     rx = genRand(gridSize);
     ry = genRand(gridSize);
 
     // Tecnicamente não precisa, pq já vai checar essa condição depois, mas deve poucar um pouquinho de processamento
-    if (grid.mesh[rx][ry]) return createNewGrid(grid, n);
+    if (grid->mesh[rx][ry]) return createNewGrid(grid, n);
     
     int rDir = genRand(4); // Gera 4 possíveis direções, 0 - 3
 
@@ -128,11 +101,11 @@ struct Grid createNewGrid(struct Grid grid, int n) {
         // Garante que vai testar todas as direções
         int newDir = (rDir + i) % 4; // 1 + 0 % 4 = 1, 1 + 1 % 4 = 2, 1 + 2 % 4 = 3, 1 + 3 % 4 = 0
 
-        if (tryNewShip(grid, rx, ry, newDir, n)) {
+        if (tryNewShip(*grid, rx, ry, newDir, n)) {
             for (int j = 0; j < shipSize[n]; j++) {
                 int nextX = rx + (dx[newDir] * j);
                 int nextY = ry + (dy[newDir] * j);
-                grid.mesh[nextX][nextY] = n + 1; 
+                grid->mesh[nextX][nextY] = n + 1; 
             }
             return createNewGrid(grid, (n + 1)); // Faz de novo, mas com o grid atualizado e o n + 1
         }
@@ -166,67 +139,24 @@ struct Game updateGame(struct Game game, struct Position pos) {
     return game;
 }
 
+// TODO: colocar um \n entre os For pra ficar mais legível
 // Desenha uma array de tamanho gridSize x gridSize no terminal
-void drawGame(int grid[][gridSize], int type) {
-    printf("   ");
-
+void drawGame(int grid[][gridSize]) {
     for (int i = 0; i < gridSize; i++) {
-        printf("%02d ", i + 1); // Números menores que 10 ganham zero à esquerda
-    }
-
-    printf("\n");
-    
-    for (int i = 0; i < gridSize; i++) {
-        if (i < 26) printf("%c: ", alphabet[i]);
-        else printf("%d: ", (i - 26) + 1); // Se passar de 26 usa numeros
         for (int j = 0; j < gridSize; j++) {
-            if (type) {
-                if (j < gridSize - 1) printf("%c, ", parseState(grid[i][j]));
-                else printf("%c\n", parseState(grid[i][j]));
-            } else {
-                if (j < gridSize - 1) printf("%d, ", grid[i][j]);
-                else printf("%d\n", grid[i][j]);
-            }
+            if (j != gridSize - 1) printf("%d, ", grid[i][j]); 
+            else printf("%d\n", grid[i][j]); // Se tiver no ultimo elemento da fileira pula linha
         }
     }
+    printf("Digite a posicao de ataque.\n");
 }
 
 struct Game initGame() {
     struct Game newGame = {0};
-    // Permite que o jogador erre 33% dos ataques e ainda tenha o número de ataques igual ao número de espaços ocupados pelos navios
-    newGame.maxRounds = ((gridSize * gridSize) / 3) + getShipSum();
-    // newGame.maxRounds = 4; // Pra facilitar os testes
-
-    // Mantenho sem usar ponteiros aqui para melhorar a legibilidade
-    newGame.grid = createNewGrid(newGame.grid, 0);
+    // Permite que o jogador erre 25% dos ataques e ainda tenha o número de ataques igual ao número de espaços ocupados pelos navios
+    newGame.maxRounds = ((gridSize * gridSize) / 4) + getShipSum();
+    createNewGrid(&newGame.grid, 0);
     return newGame;
-}
-
-// Cuida do tratamento de entrada e garante uma posição válida do jogador
-struct Position getPlayerPosition(struct Game game) {
-    char charX;
-    int y;
-    int x;
-    struct Position pos;
-
-    do {
-        printf("Digite as coordenadas X: (1-%d) ", gridSize);
-        scanf("%d", &y);
-
-        printf("Digite as coordenadas Y: (a-%c) ", alphabet[gridSize - 1]);
-        scanf(" %c", &charX);
-
-        x = parseLetter(charX);
-        pos = newPos(x, y - 1);
-
-        if (pos.valid != 1) {
-            printf("Digite coordenadas validas!\n");
-        } else if (game.grid.radar[pos.x][pos.y]) {
-            printf("Digite coordenadas novas!\n");
-        }
-    } while (pos.valid != 1 || game.grid.radar[pos.x][pos.y]);
-
-    return pos;
 }
 
 int main() {
@@ -241,19 +171,29 @@ int main() {
     struct Game game = initGame();
 
     do {
-        drawGame(game.grid.radar, 1);
+        drawGame(game.grid.mesh);
 
-        struct Position pos = getPlayerPosition(game);
+        int x; int y;
+
+        scanf("%d", &y);
+        scanf("%d", &x);
+        struct Position pos = newPos(x - 1, y - 1);
+        
+        // Garante que o jogador digite coordenadas válidas e que ele não tenha atacado aquela posição antes
+        // Força o jogador a digitar novas coordenadas caso ele tenha digitado algo inválido ou que ele já tenha atacado antes
+        while (pos.valid != 1 || game.grid.radar[pos.x][pos.y]) {
+            if (game.grid.radar[pos.x][pos.y]) printf("Digite coordenadas novas!\n");
+            else printf("Digite coordenadas validas!\n");
+            
+            scanf("%d", &y);
+            scanf("%d", &x);
+            pos = newPos(x - 1, y - 1); 
+        }
+
+        // Apenas atualiza o jogo se as coordenadas forem válidas e que ele não tenha atacado aquela posição antes
         game = updateGame(game, pos);
-
     } while (!game.state);
 
-    drawGame(game.grid.radar, 1);
-    
-    if (game.state == -1) {
-        printf("\nGame Over!\nPosicoes dos navios:\n");
-        drawGame(game.grid.mesh, 0);
-    } else printf("Parabens, voce venceu!\n");
-    
+    drawGame(game.grid.mesh); // Mostra como era o jogo (Temporário)
     return 0;
 }

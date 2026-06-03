@@ -1,4 +1,4 @@
-# ⚓ Batalha Naval - Implementação Completa em C
+﻿# ⚓ Batalha Naval - Implementação Completa em C
 
 Um jogo de Batalha Naval implementado em C com geração dinâmica de barcos, validação inteligente de tabuleiro e sistema de jogo funcional e desafiador.
 
@@ -362,17 +362,14 @@ Funções como `placeGuess` usam ponteiros para evitar copiar a struct Grid inte
 ## ⚠️ Limitações Atuais
 
 1. **Recursão**: `createNewGrid()` é recursiva e pode causar stack overflow em tabuleiros muito grandes
-2. **Múltiplos Tiros**: Não protege contra tiros repetidos na mesma célula (problema de UX)
-3. **Sem Validação de Entrada**: Não valida coordenadas inválidas do jogador
-
+2. **Sem Validação de Strings**: Se a entrada for uma string ao invés de 2 Char o programa fecha
+3. **README não atualiza sozinho :(**: Se eu mudar o código o README fica desatualizado
 ---
 
 ## 📝 Sugestões de Expansão
 
 Possíveis melhorias:
 - [ ] Dificuldade variável (ajustar número de rodadas)
-- [ ] Proteção contra tiros repetidos
-- [ ] Refatorar `createNewGrid()` para usar ponteiros
 - [ ] Estatísticas de jogo (total de acertos, etc)
 
 ---
